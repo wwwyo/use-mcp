@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useMcp } from "use-mcp/react";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const {
+    state, // Connection state: 'discovering' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
+    tools, // Available tools from MCP server
+    error, // Error message if connection failed
+    callTool, // Function to call tools on the MCP server
+    retry, // Retry connection manually
+    authenticate, // Manually trigger authentication
+    clearStorage, // Clear stored tokens and credentials
+  } = useMcp({
+    url: "https://bindings.mcp.cloudflare.com/sse",
+    clientName: "My-mcp-client",
+    autoReconnect: true,
+  });
+  console.log(state);
+  console.log(tools);
+
+  // Handle different states
+  if (state === "failed") {
+    return (
+      <div>
+        <p>Connection failed: {error}</p>
+        <button onClick={retry}>Retry</button>
+        <button onClick={authenticate}>Authenticate Manually</button>
+      </div>
+    );
+  }
+
+  if (state !== "ready") {
+    return <div>Connecting to AI service...</div>;
+  }
+
+  // Use available tools
+  const handleSearch = async () => {
+    try {
+      const result = await callTool("search", { query: "example search" });
+      console.log("Search results:", result);
+    } catch (err) {
+      console.error("Tool call failed:", err);
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      <h2>Available Tools: {tools.length}</h2>
+      <ul>
+        {tools.map((tool) => (
+          <li key={tool.name}>{tool.name}</li>
+        ))}
+      </ul>
+      <button onClick={handleSearch}>Search</button>
+    </div>
+  );
 }
-
-export default App
